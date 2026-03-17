@@ -33,14 +33,15 @@ This project predicts the likelihood of a stroke based on patient health data us
 - `scaler.pkl` → Scaler for preprocessing
 - `feature_importance.csv` → Feature importance
 
-## 📊 Visualizations
-### Confusion Matrix
+## 📊Visualizations
+
+#### Confusion Matrix
 ![Confusion Matrix](confusion_matrix.png)
 
-### ROC Curve
+#### ROC Curve
 ![ROC Curve](roc_curve.png)
 
-### Feature Importance
+#### Feature Importance
 ![Feature Importance](feature_importance.png)
 
 ## 🚀 Future Work
