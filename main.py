@@ -297,3 +297,49 @@ print("Scaler saved successfully!")
 
 importance_df.to_csv("feature_importance.csv", index=False) # Save feature importance file
 print("Feature importance saved.")
+
+# ================= VISUALIZATIONS =================
+
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
+
+# 1. Confusion Matrix
+cm = confusion_matrix(y_test, rf_pred)
+
+disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+disp.plot()
+plt.title("Confusion Matrix - Random Forest")
+plt.show()
+plt.savefig("confusion_matrix.png")
+
+# 2. ROC Curve (Corrected)
+from sklearn.metrics import roc_curve, auc
+
+y_prob = rf_model.predict_proba(X_test)[:,1]
+
+fpr, tpr, _ = roc_curve(y_test, y_prob)
+roc_auc = auc(fpr, tpr)
+
+plt.plot(fpr, tpr, label="Random Forest (AUC = %0.2f)" % roc_auc)
+plt.plot([0,1],[0,1],'--')
+
+plt.xlabel("False Positive Rate")
+plt.ylabel("True Positive Rate")
+plt.title("ROC Curve")
+plt.legend()
+plt.show()
+plt.savefig("roc_curve.png")
+
+# 3. Feature Importance Plot
+importance = rf_model.feature_importances_
+
+importance_df = pd.DataFrame({
+    "Feature": X.columns,
+    "Importance": importance
+}).sort_values(by="Importance", ascending=False)
+
+sns.barplot(x="Importance", y="Feature", data=importance_df)
+
+plt.title("Feature Importance")
+plt.show()
+plt.savefig("feature_importance.png")
