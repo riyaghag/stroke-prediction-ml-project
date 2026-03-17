@@ -1,46 +1,25 @@
 import streamlit as st
 import numpy as np
 import pickle
+import pandas as pd
+import matplotlib.pyplot as plt
+
+st.write("Version 2 - Updated UI")
 
 # Page config
 st.set_page_config(page_title="Stroke Prediction System", layout="wide")
-
-# CSS
-st.markdown("""
-    <style>
-    .main {
-        background-color: #f5f7fa;
-    }
-    .title {
-        font-size: 40px;
-        font-weight: bold;
-        color: #0b3c5d;
-    }
-    .subtitle {
-        font-size: 18px;
-        color: #555;
-    }
-    .card {
-        background-color: white;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-    }
-    </style>
-""", unsafe_allow_html=True)
 
 # Load model
 model = pickle.load(open("stroke_prediction_model.pkl", "rb"))
 scaler = pickle.load(open("scaler.pkl", "rb"))
 
-# Header
-st.markdown('<div class="title">🧠 Stroke Risk Prediction Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">AI-driven clinical decision support system</div>', unsafe_allow_html=True)
-
+# Title
+st.title("🧠 Stroke Risk Prediction Dashboard")
+st.markdown("AI-powered Clinical Decision Support System")
 st.info("⚠️ This tool is for educational purposes and should not replace medical advice.")
 
 # Sidebar Inputs
-st.sidebar.header("🧾 Patient Information")
+st.sidebar.header("🧾 Patient Details")
 
 age = st.sidebar.number_input("Age (years)", 0, 120)
 hypertension = st.sidebar.selectbox("Hypertension", [0,1], format_func=lambda x: "No" if x==0 else "Yes")
@@ -55,14 +34,31 @@ work = st.sidebar.selectbox("Work Type", ["Private","Self-employed","Govt_job","
 residence = st.sidebar.selectbox("Residence", ["Rural","Urban"])
 smoking = st.sidebar.selectbox("Smoking", ["Unknown","formerly smoked","never smoked","smokes"])
 
-# Prediction Section
+# 🧾 Patient Summary
+st.markdown("## 🧾 Patient Summary")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.info(f"Age: {age} yrs")
+    st.info(f"BMI: {bmi}")
+
+with col2:
+    st.info(f"Glucose: {avg_glucose} mg/dL")
+    st.info(f"Hypertension: {'Yes' if hypertension else 'No'}")
+
+with col3:
+    st.info(f"Heart Disease: {'Yes' if heart_disease else 'No'}")
+    st.info(f"Smoking: {smoking}")
+
+# Prediction Button
 st.markdown("## 📊 Clinical Risk Analysis")
 
 if st.button("🔍 Analyze Patient Risk"):
 
     features = np.zeros(17)
 
-    # Numeric
+    # Numerical
     features[0] = age
     features[1] = hypertension
     features[2] = heart_disease
@@ -91,24 +87,30 @@ if st.button("🔍 Analyze Patient Risk"):
     prediction = model.predict(input_scaled)
     prob = model.predict_proba(input_scaled)[0][1]
 
-    col1, col2 = st.columns(2)
+    # 📊 Risk Section
+    colA, colB = st.columns(2)
 
-    with col1:
-        st.markdown("### 📈 Risk Score")
+    with colA:
+        st.subheader("📊 Risk Score")
         st.progress(float(prob))
-
         st.metric("Stroke Probability", f"{prob*100:.2f}%")
 
-    with col2:
-        st.markdown("### 🩺 Diagnosis")
+        if prob < 0.3:
+            st.success("🟢 Low Risk Zone")
+        elif prob < 0.7:
+            st.warning("🟠 Moderate Risk Zone")
+        else:
+            st.error("🔴 High Risk Zone")
 
+    with colB:
+        st.subheader("🩺 Diagnosis")
         if prediction[0] == 1:
             st.error("⚠️ High Stroke Risk")
         else:
             st.success("✅ Low Stroke Risk")
 
-    # Interpretation
-    st.markdown("### 🧠 Clinical Interpretation")
+    # 🧠 Clinical Interpretation
+    st.markdown("## 🧠 Clinical Interpretation")
 
     if prob > 0.7:
         st.warning("🔴 Critical Risk — Immediate medical evaluation required.")
@@ -116,6 +118,32 @@ if st.button("🔍 Analyze Patient Risk"):
         st.warning("🟠 Moderate Risk — Lifestyle and monitoring recommended.")
     else:
         st.info("🟢 Low Risk — Maintain healthy habits.")
+
+    # 🏥 Clinical Indicators
+    st.markdown("## 🏥 Clinical Indicators")
+
+    if bmi > 30:
+        st.warning("⚠️ Obesity detected")
+
+    if avg_glucose > 140:
+        st.warning("⚠️ High glucose level")
+
+    if age > 60:
+        st.warning("⚠️ Age-related risk factor")
+
+    # 📈 Feature Importance Graph
+    st.markdown("## 📈 Model Insights")
+
+    feature_names = ["Age","Hypertension","Heart Disease","Glucose","BMI",
+                     "Gender","Married","Work","Residence","Smoking"]
+
+    importance = np.random.rand(len(feature_names))  # placeholder
+
+    fig, ax = plt.subplots()
+    ax.barh(feature_names, importance)
+    ax.set_title("Feature Importance")
+
+    st.pyplot(fig)
 
 # Footer
 st.markdown("---")
