@@ -3,137 +3,120 @@ import numpy as np
 import pickle
 
 # Page config
-st.set_page_config(page_title="Stroke Prediction App", layout="wide")
+st.set_page_config(page_title="Stroke Prediction System", layout="wide")
 
-# Load model and scaler
+# CSS
+st.markdown("""
+    <style>
+    .main {
+        background-color: #f5f7fa;
+    }
+    .title {
+        font-size: 40px;
+        font-weight: bold;
+        color: #0b3c5d;
+    }
+    .subtitle {
+        font-size: 18px;
+        color: #555;
+    }
+    .card {
+        background-color: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Load model
 model = pickle.load(open("stroke_prediction_model.pkl", "rb"))
 scaler = pickle.load(open("scaler.pkl", "rb"))
 
-# Title
-st.title("🧠 Stroke Prediction System")
-st.markdown("### AI-powered risk prediction based on patient health data")
+# Header
+st.markdown('<div class="title">🧠 Stroke Risk Prediction Dashboard</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">AI-driven clinical decision support system</div>', unsafe_allow_html=True)
 
-st.info("⚠️ This prediction is based on a machine learning model and should not replace medical advice.")
+st.info("⚠️ This tool is for educational purposes and should not replace medical advice.")
 
-# Sidebar for inputs
-st.sidebar.header("📋 Enter Patient Details")
+# Sidebar Inputs
+st.sidebar.header("🧾 Patient Information")
 
-# Inputs
-age = st.sidebar.number_input("Age (years)", 0, 120, help="Enter age in years")
+age = st.sidebar.number_input("Age (years)", 0, 120)
+hypertension = st.sidebar.selectbox("Hypertension", [0,1], format_func=lambda x: "No" if x==0 else "Yes")
+heart_disease = st.sidebar.selectbox("Heart Disease", [0,1], format_func=lambda x: "No" if x==0 else "Yes")
 
-hypertension = st.sidebar.selectbox(
-    "Hypertension",
-    [0, 1],
-    format_func=lambda x: "No" if x == 0 else "Yes"
-)
+avg_glucose = st.sidebar.number_input("Glucose Level (mg/dL)", 50.0, 300.0)
+bmi = st.sidebar.number_input("BMI (kg/m²)", 10.0, 60.0)
 
-heart_disease = st.sidebar.selectbox(
-    "Heart Disease",
-    [0, 1],
-    format_func=lambda x: "No" if x == 0 else "Yes"
-)
+gender = st.sidebar.selectbox("Gender", ["Female","Male","Other"])
+married = st.sidebar.selectbox("Married", ["No","Yes"])
+work = st.sidebar.selectbox("Work Type", ["Private","Self-employed","Govt_job","children","Never_worked"])
+residence = st.sidebar.selectbox("Residence", ["Rural","Urban"])
+smoking = st.sidebar.selectbox("Smoking", ["Unknown","formerly smoked","never smoked","smokes"])
 
-avg_glucose = st.sidebar.number_input(
-    "Average Glucose Level (mg/dL)",
-    50.0, 300.0,
-    help="Normal range: 70–140 mg/dL"
-)
+# Prediction Section
+st.markdown("## 📊 Clinical Risk Analysis")
 
-bmi = st.sidebar.number_input(
-    "BMI (kg/m²)",
-    10.0, 60.0,
-    help="Normal range: 18.5–24.9"
-)
+if st.button("🔍 Analyze Patient Risk"):
 
-gender = st.sidebar.selectbox("Gender", ["Female", "Male", "Other"])
-married = st.sidebar.selectbox("Ever Married", ["No", "Yes"])
-work = st.sidebar.selectbox(
-    "Work Type",
-    ["Private", "Self-employed", "Govt_job", "children", "Never_worked"]
-)
-residence = st.sidebar.selectbox("Residence Type", ["Rural", "Urban"])
-smoking = st.sidebar.selectbox(
-    "Smoking Status",
-    ["Unknown", "formerly smoked", "never smoked", "smokes"]
-)
-
-# Main area
-st.subheader("📊 Prediction Result")
-
-if st.button("Predict Stroke Risk"):
-
-    # Create feature array
     features = np.zeros(17)
 
-    # Numerical features
+    # Numeric
     features[0] = age
     features[1] = hypertension
     features[2] = heart_disease
     features[3] = avg_glucose
     features[4] = bmi
 
-    # Gender
-    if gender == "Male":
-        features[5] = 1
-    elif gender == "Other":
-        features[6] = 1
+    # Encoding
+    if gender == "Male": features[5] = 1
+    elif gender == "Other": features[6] = 1
 
-    # Married
-    if married == "Yes":
-        features[7] = 1
+    if married == "Yes": features[7] = 1
 
-    # Work type
-    if work == "Never_worked":
-        features[8] = 1
-    elif work == "Private":
-        features[9] = 1
-    elif work == "Self-employed":
-        features[10] = 1
-    elif work == "children":
-        features[11] = 1
+    if work == "Never_worked": features[8] = 1
+    elif work == "Private": features[9] = 1
+    elif work == "Self-employed": features[10] = 1
+    elif work == "children": features[11] = 1
 
-    # Residence
-    if residence == "Urban":
-        features[12] = 1
+    if residence == "Urban": features[12] = 1
 
-    # Smoking
-    if smoking == "formerly smoked":
-        features[13] = 1
-    elif smoking == "never smoked":
-        features[14] = 1
-    elif smoking == "smokes":
-        features[15] = 1
+    if smoking == "formerly smoked": features[13] = 1
+    elif smoking == "never smoked": features[14] = 1
+    elif smoking == "smokes": features[15] = 1
 
-    # Reshape
-    input_data = features.reshape(1, -1)
+    input_scaled = scaler.transform(features.reshape(1,-1))
 
-    # Scale
-    input_scaled = scaler.transform(input_data)
-
-    # Predict
     prediction = model.predict(input_scaled)
-    probability = model.predict_proba(input_scaled)[0][1]
+    prob = model.predict_proba(input_scaled)[0][1]
 
-    # Display results
     col1, col2 = st.columns(2)
 
     with col1:
-        st.metric(label="Stroke Probability", value=f"{probability*100:.2f}%")
+        st.markdown("### 📈 Risk Score")
+        st.progress(float(prob))
+
+        st.metric("Stroke Probability", f"{prob*100:.2f}%")
 
     with col2:
-        if prediction[0] == 1:
-            st.error("⚠️ High Risk of Stroke")
-        else:
-            st.success("✅ Low Risk of Stroke")
+        st.markdown("### 🩺 Diagnosis")
 
-    # Extra interpretation
-    if probability > 0.7:
-        st.warning("🔴 Very High Risk — Immediate medical consultation recommended.")
-    elif probability > 0.4:
-        st.warning("🟠 Moderate Risk — Lifestyle and health monitoring advised.")
+        if prediction[0] == 1:
+            st.error("⚠️ High Stroke Risk")
+        else:
+            st.success("✅ Low Stroke Risk")
+
+    # Interpretation
+    st.markdown("### 🧠 Clinical Interpretation")
+
+    if prob > 0.7:
+        st.warning("🔴 Critical Risk — Immediate medical evaluation required.")
+    elif prob > 0.4:
+        st.warning("🟠 Moderate Risk — Lifestyle and monitoring recommended.")
     else:
-        st.info("🟢 Low Risk — Maintain healthy lifestyle.")
+        st.info("🟢 Low Risk — Maintain healthy habits.")
 
 # Footer
 st.markdown("---")
-st.markdown("💡 Built using Machine Learning | Random Forest / XGBoost Model")
+st.markdown("🧬 Developed using Machine Learning | Healthcare AI System")
