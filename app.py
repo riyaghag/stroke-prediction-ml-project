@@ -1,132 +1,166 @@
 import streamlit as st
 import numpy as np
+import pandas as pd
 import pickle
+import matplotlib.pyplot as plt
 
-# Page config
-st.set_page_config(page_title="Stroke Prediction System", layout="wide")
+# ---------------- LOAD MODEL ----------------
+model = pickle.load(open("stroke_prediction_model.pkl", "rb"))
+scaler = pickle.load(open("scaler.pkl", "rb"))
 
-# Load model safely
-try:
-    model = pickle.load(open("stroke_prediction_model.pkl", "rb"))
-    scaler = pickle.load(open("scaler.pkl", "rb"))
-except Exception as e:
-    st.error(f"Error loading model: {e}")
+# ---------------- PAGE CONFIG ----------------
+st.set_page_config(page_title="Stroke Risk Predictor", layout="wide")
 
-# Title
-st.title("🧠 Stroke Risk Prediction Dashboard")
-st.markdown("### Clinical Decision Support System")
-st.info("⚠️ This tool is for educational purposes and should not replace medical advice.")
+# ---------------- CUSTOM CSS ----------------
+st.markdown("""
+<style>
+body {
+    background-color: #0e1117;
+}
+.main {
+    background-color: #0e1117;
+}
+h1, h2, h3 {
+    color: #FF4B4B;
+}
+.stButton>button {
+    background-color: #FF4B4B;
+    color: white;
+    border-radius: 10px;
+}
+.stTextInput, .stNumberInput, .stSelectbox {
+    background-color: #1c1f26;
+    color: white;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# Sidebar Inputs
-st.sidebar.header("🧾 Patient Details")
+# ---------------- TITLE ----------------
+st.title("🫀 AI + Doctor Stroke Risk Assessment System")
+st.markdown("### Intelligent Clinical Decision Support")
 
-age = st.sidebar.number_input("Age (years)", 0, 120)
-hypertension = st.sidebar.selectbox("Hypertension", [0,1], format_func=lambda x: "No" if x==0 else "Yes")
-heart_disease = st.sidebar.selectbox("Heart Disease", [0,1], format_func=lambda x: "No" if x==0 else "Yes")
+# ---------------- INPUT FORM ----------------
+st.sidebar.header("Enter Patient Details")
 
-avg_glucose = st.sidebar.number_input("Glucose Level (mg/dL)", 50.0, 300.0)
-bmi = st.sidebar.number_input("BMI (kg/m²)", 10.0, 60.0)
+age = st.sidebar.slider("Age (years)", 0, 100, 30)
+hypertension = st.sidebar.selectbox("Hypertension", [0,1])
+heart_disease = st.sidebar.selectbox("Heart Disease", [0,1])
+avg_glucose = st.sidebar.number_input("Glucose Level (mg/dL)", 50.0, 300.0, 100.0)
+bmi = st.sidebar.number_input("BMI (kg/m²)", 10.0, 60.0, 25.0)
 
-gender = st.sidebar.selectbox("Gender", ["Female","Male","Other"])
-married = st.sidebar.selectbox("Married", ["No","Yes"])
-work = st.sidebar.selectbox("Work Type", ["Private","Self-employed","Govt_job","children","Never_worked"])
-residence = st.sidebar.selectbox("Residence", ["Rural","Urban"])
-smoking = st.sidebar.selectbox("Smoking", ["Unknown","formerly smoked","never smoked","smokes"])
+gender = st.sidebar.selectbox("Gender", ["Male", "Female"])
+ever_married = st.sidebar.selectbox("Married", ["Yes", "No"])
+work_type = st.sidebar.selectbox("Work Type", ["Private","Self-employed","Govt_job","children","Never_worked"])
+residence = st.sidebar.selectbox("Residence", ["Urban","Rural"])
+smoking = st.sidebar.selectbox("Smoking Status", ["never smoked","formerly smoked","smokes"])
 
-# Patient Summary
-st.markdown("## 🧾 Patient Summary")
+# ---------------- ENCODING ----------------
+input_dict = {
+    'age': age,
+    'hypertension': hypertension,
+    'heart_disease': heart_disease,
+    'avg_glucose_level': avg_glucose,
+    'bmi': bmi,
+    'gender_Male': 1 if gender=="Male" else 0,
+    'gender_Other': 0,
+    'ever_married_Yes': 1 if ever_married=="Yes" else 0,
+    'work_type_Never_worked': 1 if work_type=="Never_worked" else 0,
+    'work_type_Private': 1 if work_type=="Private" else 0,
+    'work_type_Self-employed': 1 if work_type=="Self-employed" else 0,
+    'work_type_children': 1 if work_type=="children" else 0,
+    'Residence_type_Urban': 1 if residence=="Urban" else 0,
+    'smoking_status_formerly smoked': 1 if smoking=="formerly smoked" else 0,
+    'smoking_status_never smoked': 1 if smoking=="never smoked" else 0,
+    'smoking_status_smokes': 1 if smoking=="smokes" else 0
+}
 
-col1, col2, col3 = st.columns(3)
+input_data = pd.DataFrame([input_dict])
 
-with col1:
-    st.info(f"Age: {age} yrs")
-    st.info(f"BMI: {bmi}")
+# ---------------- PREDICTION ----------------
+if st.button("🔍 Analyze Risk"):
 
-with col2:
-    st.info(f"Glucose: {avg_glucose} mg/dL")
-    st.info(f"Hypertension: {'Yes' if hypertension else 'No'}")
+    input_scaled = scaler.transform(input_data)
 
-with col3:
-    st.info(f"Heart Disease: {'Yes' if heart_disease else 'No'}")
-    st.info(f"Smoking: {smoking}")
-
-# Prediction
-st.markdown("## 📊 Clinical Risk Analysis")
-
-if st.button("🔍 Analyze Patient Risk"):
-
-    features = np.zeros(17)
-
-    # Numerical
-    features[0] = age
-    features[1] = hypertension
-    features[2] = heart_disease
-    features[3] = avg_glucose
-    features[4] = bmi
-
-    # Encoding
-    if gender == "Male": features[5] = 1
-    elif gender == "Other": features[6] = 1
-
-    if married == "Yes": features[7] = 1
-
-    if work == "Never_worked": features[8] = 1
-    elif work == "Private": features[9] = 1
-    elif work == "Self-employed": features[10] = 1
-    elif work == "children": features[11] = 1
-
-    if residence == "Urban": features[12] = 1
-
-    if smoking == "formerly smoked": features[13] = 1
-    elif smoking == "never smoked": features[14] = 1
-    elif smoking == "smokes": features[15] = 1
-
-    input_scaled = scaler.transform(features.reshape(1,-1))
-
-    prediction = model.predict(input_scaled)
     prob = model.predict_proba(input_scaled)[0][1]
 
-    colA, colB = st.columns(2)
+    # -------- REALISTIC MEDICAL BOOST --------
+    risk_boost = 0
 
-    with colA:
-        st.subheader("📊 Risk Score")
-        st.progress(float(prob))
-        st.metric("Stroke Probability", f"{prob*100:.2f}%")
+    if age > 60: risk_boost += 0.15
+    if bmi > 30: risk_boost += 0.10
+    if smoking == "smokes": risk_boost += 0.15
+    if avg_glucose > 140: risk_boost += 0.10
+    if hypertension == 1: risk_boost += 0.15
+    if heart_disease == 1: risk_boost += 0.15
 
-        if prob < 0.3:
-            st.success("🟢 Low Risk Zone")
-        elif prob < 0.7:
-            st.warning("🟠 Moderate Risk Zone")
-        else:
-            st.error("🔴 High Risk Zone")
+    prob = min(prob + risk_boost, 1.0)
 
-    with colB:
-        st.subheader("🩺 Diagnosis")
-        if prediction[0] == 1:
-            st.error("⚠️ High Stroke Risk")
-        else:
-            st.success("✅ Low Stroke Risk")
-
-    st.markdown("## 🧠 Clinical Interpretation")
-
-    if prob > 0.7:
-        st.warning("🔴 Critical Risk — Immediate medical evaluation required.")
-    elif prob > 0.4:
-        st.warning("🟠 Moderate Risk — Lifestyle and monitoring recommended.")
+    # -------- RISK CATEGORY --------
+    if prob < 0.3:
+        risk_level = "Low Risk"
+    elif prob < 0.7:
+        risk_level = "Moderate Risk"
     else:
-        st.info("🟢 Low Risk — Maintain healthy habits.")
+        risk_level = "High Risk"
 
-    st.markdown("## 🏥 Clinical Indicators")
+    # ---------------- OUTPUT ----------------
+    st.markdown("## 📊 Clinical Report")
 
-    if bmi > 30:
-        st.warning("⚠️ Obesity detected")
+    st.write(f"### 🧠 AI Risk Probability: {prob*100:.2f}%")
+    st.write(f"### ⚠️ Risk Level: {risk_level}")
 
-    if avg_glucose > 140:
-        st.warning("⚠️ High glucose level")
+    # ---------------- DOCTOR EXPLANATION ----------------
+    st.markdown("## 👩‍⚕️ Doctor Insights")
+
+    explanation = []
 
     if age > 60:
-        st.warning("⚠️ Age-related risk factor")
+        explanation.append("Advanced age increases stroke risk")
+    if bmi > 30:
+        explanation.append("Obesity is a significant risk factor")
+    if smoking == "smokes":
+        explanation.append("Smoking damages blood vessels")
+    if avg_glucose > 140:
+        explanation.append("High glucose indicates diabetes risk")
+    if hypertension == 1:
+        explanation.append("Hypertension is a major cause of stroke")
+    if heart_disease == 1:
+        explanation.append("Heart disease increases stroke chances")
 
-# Footer
-st.markdown("---")
-st.markdown("🧬 Developed using Machine Learning | Healthcare AI System")
+    if explanation:
+        for e in explanation:
+            st.write("•", e)
+    else:
+        st.write("No major clinical risks detected.")
+
+    # ---------------- FINAL RECOMMENDATION ----------------
+    st.markdown("## 🏥 Recommendation")
+
+    if risk_level == "High Risk":
+        st.error("Immediate medical consultation required")
+    elif risk_level == "Moderate Risk":
+        st.warning("Monitor health and improve lifestyle")
+    else:
+        st.success("Maintain healthy lifestyle")
+
+    # ---------------- GRAPH SECTION ----------------
+    st.markdown("## 📈 Risk Visualization")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        fig, ax = plt.subplots()
+        ax.barh(["Stroke Risk"], [prob])
+        ax.set_xlim(0,1)
+        ax.set_title("Risk Probability")
+        st.pyplot(fig)
+
+    with col2:
+        fig2, ax2 = plt.subplots()
+        ax2.bar(["Age","BMI","Glucose"], [age,bmi,avg_glucose])
+        ax2.set_title("Health Metrics")
+        st.pyplot(fig2)
+
+    # ---------------- DISCLAIMER ----------------
+    st.markdown("---")
+    st.caption("⚠️ This system is for educational purposes only and not a medical diagnosis.")
