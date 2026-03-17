@@ -1,21 +1,20 @@
 import streamlit as st
 import numpy as np
 import pickle
-import pandas as pd
-import matplotlib.pyplot as plt
-
-st.write("Version 2 - Updated UI")
 
 # Page config
 st.set_page_config(page_title="Stroke Prediction System", layout="wide")
 
-# Load model
-model = pickle.load(open("stroke_prediction_model.pkl", "rb"))
-scaler = pickle.load(open("scaler.pkl", "rb"))
+# Load model safely
+try:
+    model = pickle.load(open("stroke_prediction_model.pkl", "rb"))
+    scaler = pickle.load(open("scaler.pkl", "rb"))
+except Exception as e:
+    st.error(f"Error loading model: {e}")
 
 # Title
 st.title("🧠 Stroke Risk Prediction Dashboard")
-st.markdown("AI-powered Clinical Decision Support System")
+st.markdown("### Clinical Decision Support System")
 st.info("⚠️ This tool is for educational purposes and should not replace medical advice.")
 
 # Sidebar Inputs
@@ -34,7 +33,7 @@ work = st.sidebar.selectbox("Work Type", ["Private","Self-employed","Govt_job","
 residence = st.sidebar.selectbox("Residence", ["Rural","Urban"])
 smoking = st.sidebar.selectbox("Smoking", ["Unknown","formerly smoked","never smoked","smokes"])
 
-# 🧾 Patient Summary
+# Patient Summary
 st.markdown("## 🧾 Patient Summary")
 
 col1, col2, col3 = st.columns(3)
@@ -51,7 +50,7 @@ with col3:
     st.info(f"Heart Disease: {'Yes' if heart_disease else 'No'}")
     st.info(f"Smoking: {smoking}")
 
-# Prediction Button
+# Prediction
 st.markdown("## 📊 Clinical Risk Analysis")
 
 if st.button("🔍 Analyze Patient Risk"):
@@ -87,7 +86,6 @@ if st.button("🔍 Analyze Patient Risk"):
     prediction = model.predict(input_scaled)
     prob = model.predict_proba(input_scaled)[0][1]
 
-    # 📊 Risk Section
     colA, colB = st.columns(2)
 
     with colA:
@@ -109,7 +107,6 @@ if st.button("🔍 Analyze Patient Risk"):
         else:
             st.success("✅ Low Stroke Risk")
 
-    # 🧠 Clinical Interpretation
     st.markdown("## 🧠 Clinical Interpretation")
 
     if prob > 0.7:
@@ -119,7 +116,6 @@ if st.button("🔍 Analyze Patient Risk"):
     else:
         st.info("🟢 Low Risk — Maintain healthy habits.")
 
-    # 🏥 Clinical Indicators
     st.markdown("## 🏥 Clinical Indicators")
 
     if bmi > 30:
@@ -130,20 +126,6 @@ if st.button("🔍 Analyze Patient Risk"):
 
     if age > 60:
         st.warning("⚠️ Age-related risk factor")
-
-    # 📈 Feature Importance Graph
-    st.markdown("## 📈 Model Insights")
-
-    feature_names = ["Age","Hypertension","Heart Disease","Glucose","BMI",
-                     "Gender","Married","Work","Residence","Smoking"]
-
-    importance = np.random.rand(len(feature_names))  # placeholder
-
-    fig, ax = plt.subplots()
-    ax.barh(feature_names, importance)
-    ax.set_title("Feature Importance")
-
-    st.pyplot(fig)
 
 # Footer
 st.markdown("---")
