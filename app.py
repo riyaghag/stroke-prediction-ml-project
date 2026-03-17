@@ -4,6 +4,8 @@ import pandas as pd
 import pickle
 import matplotlib.pyplot as plt
 
+df = pd.read_csv("data/stroke_data.csv")
+
 # ---------------- LOAD MODEL ----------------
 model = pickle.load(open("stroke_prediction_model.pkl", "rb"))
 scaler = pickle.load(open("scaler.pkl", "rb"))
