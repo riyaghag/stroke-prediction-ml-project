@@ -25,7 +25,7 @@ The system combines:
 * Scikit-learn
 ---
 
-## 📊 Model Summary
+## 💻 Model Summary
 
 * Data cleaned and preprocessed
 * Categorical encoding applied
