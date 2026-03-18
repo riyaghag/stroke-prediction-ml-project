@@ -39,13 +39,13 @@ This project predicts the likelihood of a stroke based on patient health data us
 ![Correlation Heatmap]("C:\Users\VICTUS\OneDrive\Desktop\Project1-healthcare\corelation heatmap.png")
 
 #### Feature Importance
-![Feature Importance](feature importance.png)
+![Feature Importance](featureimportance.png)
 
 #### ROC Curve
 ![ROC Curve](modelComparisonROC.png)
 
 #### Confusion Matrix
-![Confusion Matrix](modelComparisonROC.png)
+![Confusion Matrix](ConfusionMatrix-RandomForest.png)
 
 
 
