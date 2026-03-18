@@ -36,7 +36,7 @@ This project predicts the likelihood of a stroke based on patient health data us
 ## 📊Visualizations
 
 #### Correlation Heatmap
-![Correlation Heatmap]("CorrelationHeatmap.png")
+![Correlation Heatmap]("CorrelationHeatmap.png)
 
 #### Feature Importance
 ![Feature Importance](FeatureImportance.png)
