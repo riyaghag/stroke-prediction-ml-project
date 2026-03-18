@@ -10,7 +10,7 @@ st.set_page_config(page_title="Stroke Risk Predictor", layout="centered")
 @st.cache_resource
 def load_models():
     try:
-        # Matches the filename in your VS Code screenshot
+        # Matches your filename from the screenshot
         model = pickle.load(open('stroke_prediction_model.pkl', 'rb'))
         scaler = pickle.load(open('scaler.pkl', 'rb'))
         return model, scaler
@@ -20,31 +20,27 @@ def load_models():
 
 model, scaler = load_models()
 
-# --- UI HEADER ---
+# --- UI ---
 st.title("Stroke Risk Prediction System")
-st.write("Enter patient details to predict the risk of stroke.")
+st.write("Fill in the details below to predict stroke risk.")
 
-# --- INPUT FORM ---
 with st.container():
     col1, col2 = st.columns(2)
-    
     with col1:
         age = st.number_input("Age", min_value=0, max_value=120, value=25)
-        hypertension = st.selectbox("Hypertension (0=No, 1=Yes)", [0, 1])
-        heart_disease = st.selectbox("Heart Disease (0=No, 1=Yes)", [0, 1])
-        avg_glucose = st.number_input("Average Glucose Level", value=100.0)
-        
+        hypertension = st.selectbox("Hypertension", [0, 1], help="0 = No, 1 = Yes")
+        heart_disease = st.selectbox("Heart Disease", [0, 1], help="0 = No, 1 = Yes")
+        avg_glucose = st.number_input("Avg Glucose Level", value=100.0)
     with col2:
         bmi = st.number_input("BMI", value=25.0)
         gender = st.selectbox("Gender", ["Male", "Female", "Other"])
         married = st.selectbox("Ever Married", ["Yes", "No"])
         smoking = st.selectbox("Smoking Status", ["never smoked", "formerly smoked", "smokes", "Unknown"])
 
-# --- PREDICTION LOGIC ---
+# --- PREDICTION ---
 if st.button("Predict Stroke Risk"):
-    if model is not None and scaler is not None:
-        
-        # 1. THE COMPLETE FEATURE LIST (Required for Shape matching)
+    if model and scaler:
+        # 1. COMPLETE 21-FEATURE LIST (Matches standard Kaggle preprocessing)
         all_columns = [
             'age', 'hypertension', 'heart_disease', 'avg_glucose_level', 'bmi',
             'gender_Female', 'gender_Male', 'gender_Other', 
@@ -53,44 +49,42 @@ if st.button("Predict Stroke Risk"):
             'Residence_type_Rural', 'Residence_type_Urban',
             'smoking_status_Unknown', 'smoking_status_formerly smoked', 'smoking_status_never smoked', 'smoking_status_smokes'
         ]
-
-        # 2. Create a base DataFrame with zeros
-        input_df = pd.DataFrame([[0.0] * len(all_columns)], columns=all_columns)
-
+        
+        # 2. Create the template DataFrame with zeros
+        df = pd.DataFrame([[0.0] * len(all_columns)], columns=all_columns)
+        
         # 3. Fill Numerical Values
-        input_df.at[0, 'age'] = float(age)
-        input_df.at[0, 'hypertension'] = int(hypertension)
-        input_df.at[0, 'heart_disease'] = int(heart_disease)
-        input_df.at[0, 'avg_glucose_level'] = float(avg_glucose)
-        input_df.at[0, 'bmi'] = float(bmi)
-
-        # 4. Fill Categorical (One-Hot Encoding)
-        # Gender
-        if gender == "Male": input_df.at[0, 'gender_Male'] = 1
-        elif gender == "Female": input_df.at[0, 'gender_Female'] = 1
-        else: input_df.at[0, 'gender_Other'] = 1
+        df.at[0, 'age'] = float(age)
+        df.at[0, 'hypertension'] = int(hypertension)
+        df.at[0, 'heart_disease'] = int(heart_disease)
+        df.at[0, 'avg_glucose_level'] = float(avg_glucose)
+        df.at[0, 'bmi'] = float(bmi)
         
-        # Marriage
-        if married == "Yes": input_df.at[0, 'ever_married_Yes'] = 1
-        else: input_df.at[0, 'ever_married_No'] = 1
-        
-        # Smoking Status
-        if smoking == "formerly smoked": input_df.at[0, 'smoking_status_formerly smoked'] = 1
-        elif smoking == "never smoked": input_df.at[0, 'smoking_status_never smoked'] = 1
-        elif smoking == "smokes": input_df.at[0, 'smoking_status_smokes'] = 1
-        else: input_df.at[0, 'smoking_status_Unknown'] = 1
+        # 4. Fill Categorical Logic (One-Hot Encoding)
+        if gender == "Male": df.at[0, 'gender_Male'] = 1
+        elif gender == "Female": df.at[0, 'gender_Female'] = 1
+        else: df.at[0, 'gender_Other'] = 1
 
-        # NOTE: work_type and Residence_type remain 0 (neutral) to maintain feature count
+        if married == "Yes": df.at[0, 'ever_married_Yes'] = 1
+        else: df.at[0, 'ever_married_No'] = 1
 
-        # 5. Transform and Predict
+        if smoking == "formerly smoked": df.at[0, 'smoking_status_formerly smoked'] = 1
+        elif smoking == "never smoked": df.at[0, 'smoking_status_never smoked'] = 1
+        elif smoking == "smokes": df.at[0, 'smoking_status_smokes'] = 1
+        else: df.at[0, 'smoking_status_Unknown'] = 1
+
+        # 5. Transform and Predict with Error Handling
         try:
-            # Scale the input
-            input_scaled = scaler.transform(input_df)
+            X_scaled = scaler.transform(df) 
+            prediction = model.predict(X_scaled)
             
-            # Get prediction
-            prediction = model.predict(input_scaled)
-
             if prediction[0] == 1:
                 st.error("🚨 High Risk of Stroke")
             else:
                 st.success("✅ Low Risk of Stroke")
+                
+        except Exception as e:
+            st.error(f"Prediction Error: {e}")
+            st.info(f"Scaler expects {scaler.n_features_in_} features. Code sent {len(all_columns)}.")
+    else:
+        st.warning("Model or Scaler not loaded properly. Check your .pkl files.")
