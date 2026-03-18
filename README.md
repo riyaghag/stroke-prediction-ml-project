@@ -39,7 +39,7 @@ This project predicts the likelihood of a stroke based on patient health data us
 ![Confusion Matrix](confusion_matrix.png)
 
 #### ROC Curve
-![ROC Curve](roc_curve.png)
+![ROC Curve](modelComparisonROC.png)
 
 #### Feature Importance
 ![Feature Importance](feature_importance.png)
